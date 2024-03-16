@@ -7,7 +7,7 @@ fn check_file(file_path: &str) -> bool{
         Ok(metadata) => {
             if metadata.is_file() {
                 let path = Path::new(file_path);
-                return  path.extension().map_or(false, |ext|ext == "qif");
+                return path.extension().map_or(false, |ext|ext == "qif");
             }
             metadata.is_file()
         }
@@ -32,13 +32,14 @@ fn clean_up_payer(raw_name: &str) -> &str {
         cleaned_name = cleaned_name.trim_start_matches(prefix)
     }
 
-    return cleaned_name.trim_start()
+    cleaned_name.trim_start()
 }
 
 struct Transaction {
     d: String,
     p: String,
     n: String,
+    m: String,
     t: String
 }
 
@@ -47,6 +48,7 @@ fn process_qif_section(section_lines: &Vec<String>) -> Transaction{
         d: String::new(),
         p: String::new(),
         n: String::new(),
+        m: String::new(),
         t: String::new(),
     };
 
@@ -61,14 +63,14 @@ fn process_qif_section(section_lines: &Vec<String>) -> Transaction{
                     'P' => {
                         let parts: Vec<&str> = value.split(" - ").collect();
                         section.p = clean_up_payer(parts.get(0).unwrap_or(&"")).to_string();
-                        section.n = parts.get(1).unwrap_or(&"").to_string();
+                        section.m = parts.get(1).unwrap_or(&"").to_string();
                     },
                     _ => println!("Unknown identifier: {}", identifier),
                 }
             }
     }
-    return section;
 
+    section
 }
 
 
@@ -94,6 +96,7 @@ fn read_and_print_qif_files(input_path: &str, output_path: &str) -> io::Result<(
             writeln!(file_output, "D{}", section.d)?;
             writeln!(file_output, "P{}", section.p)?;
             writeln!(file_output, "N{}", section.n)?;
+            writeln!(file_output, "M{}", section.m)?;
             writeln!(file_output, "T{}", section.t)?;
             writeln!(file_output, "{}", line)?;
             // Reset lines in section
@@ -120,9 +123,7 @@ fn main() {
     let input_file = &args[0];
     let output_file = &args[1];
 
-
     if check_file(&input_file) {
-        // println!("File '{}' is .qif.", input_file);
         if let Err(err) = read_and_print_qif_files(input_file, output_file){
             eprintln!("Error reading QIF file: {}", err);
             std::process::exit(1)
